@@ -5,418 +5,196 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Accessible Agile Task & Billable Time Logger</title>
 
+  <!-- React 18 and Babel (CDN, no build steps) -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <!-- Agile-oriented styling: CSS variables, Flexbox, Grid, mobile-first -->
   <style>
+    /* Core theme variables (agile-oriented) */
     :root{
-      --bg: #f7fafc;
-      --panel: #ffffff;
-      --muted: #6b7280;
-      --text: #0f172a;
-      --accent: #0369a1;
-      --accent-strong: #024e6b;
-      --success: #05603a;
-      --danger: #b91c1c;
-      --focus: #ffb703;
-      --shadow: 0 1px 3px rgba(2,6,23,0.06);
-      --card-radius: 10px;
+      --bg: #0f172a; /* deep navy */
+      --surface: #0b1220; /* card background */
+      --muted: #94a3b8; /* muted text */
+      --text: #e6eef8; /* main text */
+      --accent: #06b6d4; /* cyan for active */
+      --accent-2: #f59e0b; /* sprint gold */
+      --done: #10b981; /* done green */
+      --danger: #ef4444;
+      --focus: #ffde59; /* bright focus */
+      --glass: rgba(255,255,255,0.02);
+      --card-radius: 12px;
       --gap: 12px;
       --min-touch: 44px;
-      --border: 1px solid rgba(15,23,42,0.08);
-      --glass: rgba(255,255,255,0.6);
+      --border: 1px solid rgba(255,255,255,0.06);
+      --shadow: 0 6px 18px rgba(2,6,23,0.5);
+      --max-width: 1100px;
     }
 
-    body.high-contrast {
+    /* High contrast mode - toggled on body.high-contrast */
+    body.high-contrast{
       --bg: #000000;
-      --panel: #000000;
+      --surface: #000000;
       --muted: #ffffff;
       --text: #ffffff;
       --accent: #ffff00;
-      --accent-strong: #ffffff;
-      --success: #00ff00;
+      --accent-2: #ff00ff;
+      --done: #00ff00;
       --danger: #ff0000;
       --focus: #00ffff;
-      --shadow: none;
       --border: 2px solid #ffffff;
-      --glass: rgba(255,255,255,0.02);
+      --shadow: none;
     }
 
+    /* Base reset and layout */
     *{box-sizing:border-box}
     html,body,#root{height:100%}
     body{
       margin:0;
-      font-family: system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
-      background:linear-gradient(180deg,var(--bg),#eef2f7);
+      background:linear-gradient(180deg,var(--bg),#071021);
       color:var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
+      padding:20px;
       line-height:1.4;
-      padding:16px;
+      display:flex;
+      justify-content:center;
     }
 
+    /* Container */
+    .app-wrap{width:100%;max-width:var(--max-width)}
+
+    /* Skip link */
     .skip-link{
       position:absolute;
-      left:8px;
-      top:8px;
+      left:16px;
+      top:12px;
       background:var(--accent);
-      color:white;
+      color:#04111a;
       padding:8px 12px;
-      border-radius:6px;
-      transform:translateY(-120%);
+      border-radius:8px;
+      transform:translateY(-140%);
       transition:transform .18s ease;
       z-index:999;
     }
-    .skip-link:focus{
-      transform:translateY(0);
-      outline:3px solid var(--focus);
-    }
+    .skip-link:focus{transform:translateY(0);outline:3px solid var(--focus)}
 
-    header{
-      display:flex;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:16px;
-    }
-    .brand{
-      display:flex;
-      gap:12px;
-      align-items:center;
-    }
-    .logo{
-      width:48px;
-      height:48px;
-      background:linear-gradient(135deg,var(--accent),var(--accent-strong));
-      border-radius:8px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      color:white;
-      font-weight:700;
-      font-size:18px;
-      box-shadow:var(--shadow);
-    }
-    h1{
-      margin:0;
-      font-size:18px;
-    }
-    .header-controls{
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
-    button, input[type="text"], input[type="number"], select, .btn-small{
-      min-height:var(--min-touch);
-      min-width:var(--min-touch);
-      padding:8px 12px;
-      border-radius:8px;
-      border:var(--border);
-      background:var(--panel);
-      color:var(--text);
-      cursor:pointer;
-      font-size:14px;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-    }
-    button:active{transform:translateY(1px)}
-    :focus-visible{
-      outline:3px solid var(--focus);
-      outline-offset:2px;
-    }
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#04111a;font-weight:700}
+    h1{margin:0;font-size:18px}
+    .tagline{color:var(--muted);font-size:13px}
 
-    .container{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:var(--gap);
-      max-width:1100px;
-      margin-inline:auto;
-    }
+    /* Header controls */
+    .header-controls{display:flex;gap:8px;align-items:center}
+    button,input,select{min-height:var(--min-touch);min-width:var(--min-touch);padding:10px 12px;border-radius:10px;border:var(--border);background:transparent;color:var(--text);cursor:pointer}
+    :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 
-    .summary-grid{
-      display:grid;
-      grid-template-columns: repeat(1,1fr);
-      gap:12px;
-    }
-    .card{
-      background:var(--panel);
-      padding:12px;
-      border-radius:var(--card-radius);
-      box-shadow:var(--shadow);
-      border:var(--border);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
-    .card h2{margin:0;font-size:14px;color:var(--muted)}
-    .card .value{font-weight:700;font-size:20px}
+    /* Grid layout: main + sidebar */
+    main{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:900px){main{grid-template-columns:1fr 320px}}
 
-    .controls{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .status-filters{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .filter-btn[aria-pressed="true"]{
-      background:var(--accent);
-      color: white;
-      border-color:transparent;
-    }
+    /* Summary cards */
+    .summary{display:grid;grid-template-columns:repeat(1,1fr);gap:12px}
+    @media(min-width:720px){.summary{grid-template-columns:repeat(3,1fr)}}
+    .card{background:linear-gradient(180deg,var(--surface),rgba(255,255,255,0.02));padding:14px;border-radius:var(--card-radius);border:var(--border);box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:center}
+    .card h2{margin:0;font-size:13px;color:var(--muted)}
+    .card .value{font-size:20px;font-weight:700}
 
-    .search{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex:1;
-    }
-    .search input{
-      flex:1;
-    }
+    /* Controls */
+    .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .filters{display:flex;gap:8px}
+    .filter-btn[aria-pressed="true"]{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#04111a;border-color:transparent}
+    .search{flex:1;display:flex;gap:8px;align-items:center}
+    .search input{flex:1;padding:10px;border-radius:10px;background:var(--glass);border:var(--border);color:var(--text)}
 
-    @media(min-width:720px){
-      .container{
-        grid-template-columns: 1fr 380px;
-      }
-      .summary-grid{
-        grid-column:1/3;
-        grid-template-columns:repeat(3,1fr);
-      }
-      main{grid-column:1/2}
-      aside{grid-column:2/3}
-    }
+    /* Add task form */
+    .add-task{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:12px;background:var(--surface);border:var(--border)}
+    .form-row{display:flex;gap:8px;flex-wrap:wrap}
+    .form-row label{display:flex;flex-direction:column;color:var(--muted);font-size:13px}
+    input[type="text"],input[type="number"],select{padding:10px;border-radius:10px;border:var(--border);background:transparent;color:var(--text)}
 
-    .tasks{
-      display:grid;
-      gap:8px;
-    }
-    .task{
-      display:flex;
-      gap:12px;
-      align-items:flex-start;
-      padding:12px;
-      background:var(--panel);
-      border-radius:10px;
-      border:var(--border);
-      box-shadow:var(--shadow);
-    }
-    .task-meta{
-      flex:1 1 auto;
-      display:flex;
-      gap:12px;
-      flex-direction:column;
-    }
-    .task-title{
-      font-weight:700;
-      font-size:16px;
-      margin:0;
-      color:var(--text);
-    }
-    .task-sub{
-      color:var(--muted);
-      font-size:13px;
-      margin:0;
-    }
-    .task-controls{
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
-    .pill{
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:13px;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-    }
-    .pill.todo{background:#fff7ed;color:#b45309}
-    .pill.inprogress{background:#eff6ff;color:#0369a1}
-    .pill.done{background:#ecfdf5;color:#065f46}
+    /* Tasks list - Kanban inspired cards */
+    .tasks{display:grid;gap:10px}
+    .task{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border:var(--border);box-shadow:0 8px 24px rgba(2,6,23,0.45)}
+    .task .left{flex:1}
+    .task-title{margin:0;font-weight:700;font-size:16px}
+    .task-meta{color:var(--muted);font-size:13px}
 
-    .small{
-      font-size:13px;
-      padding:6px 8px;
-      min-width:unset;
-    }
+    .pill{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:13px}
+    .pill.todo{background:rgba(99,102,241,0.12);color:#a5b4fc}
+    .pill.inprogress{background:rgba(6,182,212,0.12);color:#7dd3fc}
+    .pill.done{background:rgba(16,185,129,0.12);color:#9ae6b4}
 
-    form.add-task{
-      display:flex;
-      gap:8px;
-      flex-direction:column;
-      background:var(--panel);
-      padding:12px;
-      border-radius:10px;
-      border:var(--border);
-      box-shadow:var(--shadow);
-    }
-    .form-row{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .form-row > label{
-      display:flex;
-      flex-direction:column;
-      flex:1 1 160px;
-      gap:6px;
-      font-size:13px;
-    }
-    label > input, label > select{
-      border-radius:8px;
-      border:var(--border);
-      padding:8px 10px;
-      background:transparent;
-      min-height:var(--min-touch);
-    }
+    .task-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 
-    footer{margin-top:16px;color:var(--muted);font-size:13px}
+    /* Right column */
+    aside .card{display:flex;flex-direction:column;gap:10px}
 
-    .visually-hidden{
-      position:absolute !important;
-      height:1px; width:1px; overflow:hidden;
-      clip:rect(1px,1px,1px,1px); white-space:nowrap;
-      clip-path:inset(50%); border:0; padding:0; margin:-1px;
-    }
+    footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
 
-    .icon-btn{
-      background:transparent;
-      border:1px solid transparent;
-      padding:8px;
-      border-radius:8px;
-      min-width:var(--min-touch);
-      min-height:var(--min-touch);
-    }
+    /* Visually hidden (screen reader only) */
+    .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;clip-path:inset(50%);border:0;padding:0;margin:-1px}
 
-    .status-region{
-      position:fixed;
-      left:8px;
-      bottom:8px;
-      background:var(--panel);
-      padding:8px 12px;
-      border-radius:8px;
-      border:var(--border);
-      box-shadow:var(--shadow);
-      max-width:calc(100% - 32px);
-      display:none;
-    }
-
+    /* Small helpers */
     .muted{color:var(--muted)}
     .stack{display:flex;flex-direction:column;gap:8px}
+
+    /* Ensure buttons and inputs hit target size */
+    button.small,input[type="number"]{min-height:var(--min-touch)}
+
   </style>
 </head>
 <body>
   <a href="#main" class="skip-link">Skip to main content</a>
 
-  <div id="root" role="application" aria-label="Accessible Agile Task and Billable Time Logger"></div>
+  <div id="root" class="app-wrap" role="application" aria-label="Accessible Agile Task and Billable Time Logger"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
     const STORAGE_KEY = 'agile-time-logger-v1';
 
     const SAMPLE_TASKS = [
-      {
-        id: 't-' + Date.now() + '-1',
-        title: 'Implement OAuth token refresh',
-        client: 'Acme Corp',
-        status: 'In Progress',
-        hours: 3.5,
-        billable: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 't-' + (Date.now()+1) + '-2',
-        title: 'Sprint planning and backlog grooming',
-        client: 'Internal',
-        status: 'To Do',
-        hours: 1.0,
-        billable: false,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 't-' + (Date.now()+2) + '-3',
-        title: 'Bugfix: payment webhook retry',
-        client: 'BrightMarket',
-        status: 'Done',
-        hours: 2.25,
-        billable: true,
-        createdAt: new Date().toISOString()
-      }
+      { id: 't-1', title: 'Implement OAuth token refresh', client: 'Acme Corp', status: 'In Progress', hours: 3.5, billable: true, createdAt: new Date().toISOString() },
+      { id: 't-2', title: 'Sprint planning and backlog grooming', client: 'Internal', status: 'To Do', hours: 1.0, billable: false, createdAt: new Date().toISOString() },
+      { id: 't-3', title: 'Bugfix: payment webhook retry', client: 'BrightMarket', status: 'Done', hours: 2.25, billable: true, createdAt: new Date().toISOString() }
     ];
 
     function loadTasks(){
       try{
         const raw = localStorage.getItem(STORAGE_KEY);
-        if(!raw){
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(SAMPLE_TASKS));
-          return SAMPLE_TASKS;
-        }
+        if(!raw){ localStorage.setItem(STORAGE_KEY, JSON.stringify(SAMPLE_TASKS)); return SAMPLE_TASKS; }
         const parsed = JSON.parse(raw);
-        if(!Array.isArray(parsed)){
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(SAMPLE_TASKS));
-          return SAMPLE_TASKS;
-        }
+        if(!Array.isArray(parsed)){ localStorage.setItem(STORAGE_KEY, JSON.stringify(SAMPLE_TASKS)); return SAMPLE_TASKS; }
         return parsed;
-      }catch(e){
-        console.error('Failed loading tasks', e);
-        return SAMPLE_TASKS;
-      }
+      }catch(e){ console.error('Failed loading tasks', e); return SAMPLE_TASKS; }
     }
 
-    function saveTasks(tasks){
-      try{
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-      }catch(e){
-        console.error('Failed saving tasks', e);
-      }
-    }
+    function saveTasks(tasks){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }catch(e){ console.error('Failed saving tasks', e); } }
+    function formatHours(h){ return (Math.round(h*100)/100).toFixed(2).replace(/\.00$/,''); }
 
-    function formatHours(h){
-      return (Math.round(h*100)/100).toFixed(2).replace(/\.00$/,'');
-    }
-
-    function useAnnouncer(){
-      const [message, setMessage] = useState('');
-      useEffect(() => {
-        if(!message) return;
-        const t = setTimeout(()=> setMessage(''), 3000);
-        return ()=> clearTimeout(t);
-      }, [message]);
-      return [message, setMessage];
-    }
+    function useAnnouncer(){ const [message, setMessage] = useState(''); useEffect(()=>{ if(!message) return; const t = setTimeout(()=> setMessage(''),3000); return ()=> clearTimeout(t); },[message]); return [message, setMessage]; }
 
     function App(){
-      const [tasks, setTasks] = useState(()=> loadTasks());
-      const [filter, setFilter] = useState('All');
-      const [search, setSearch] = useState('');
-      const [contrast, setContrast] = useState(false);
-      const [announce, setAnnounce] = useAnnouncer();
+      const [tasks,setTasks] = useState(()=> loadTasks());
+      const [filter,setFilter] = useState('All');
+      const [search,setSearch] = useState('');
+      const [contrast,setContrast] = useState(!!document.body.classList.contains('high-contrast'));
+      const [announce,setAnnounce] = useAnnouncer();
       const mainRef = useRef(null);
 
-      useEffect(()=>{
-        saveTasks(tasks);
-      }, [tasks]);
+      useEffect(()=> saveTasks(tasks),[tasks]);
+      useEffect(()=> document.body.classList.toggle('high-contrast', contrast),[contrast]);
 
-      useEffect(()=>{
-        document.body.classList.toggle('high-contrast', contrast);
-      }, [contrast]);
-
-      const totalHours = tasks.reduce((s,t)=> s + Number(t.hours||0), 0);
-      const billableHours = tasks.reduce((s,t)=> s + (t.billable ? Number(t.hours||0) : 0), 0);
-      const activeCount = tasks.filter(t => t.status !== 'Done').length;
+      const totalHours = tasks.reduce((s,t)=> s + Number(t.hours||0),0);
+      const billableHours = tasks.reduce((s,t)=> s + (t.billable ? Number(t.hours||0) : 0),0);
+      const activeCount = tasks.filter(t=> t.status !== 'Done').length;
 
       const filtered = tasks.filter(t => {
         if(filter !== 'All' && t.status !== filter) return false;
-        if(search.trim()){
-          return t.client.toLowerCase().includes(search.trim().toLowerCase());
-        }
+        if(search.trim()) return t.client.toLowerCase().includes(search.trim().toLowerCase());
         return true;
       });
 
@@ -427,317 +205,151 @@
         const status = e.target.status.value;
         const hours = Number(e.target.hours.value || 0);
         const billable = e.target.billable.checked;
-
-        if(!title || !client) {
-          setAnnounce('Please provide task title and client name.');
-          return;
-        }
-
-        const newTask = {
-          id: 't-' + Date.now() + '-' + Math.floor(Math.random()*9999),
-          title,
-          client,
-          status,
-          hours: Math.round(hours*100)/100,
-          billable,
-          createdAt: new Date().toISOString()
-        };
-
-        setTasks(prev => [newTask, ...prev]);
-        setAnnounce(`Task "${title}" added for ${client}.`);
-        e.target.reset();
+        if(!title || !client){ setAnnounce('Please provide task title and client name.'); return; }
+        const newTask = { id: 't-'+Date.now(), title, client, status, hours: Math.round(hours*100)/100, billable, createdAt: new Date().toISOString() };
+        setTasks(prev => [newTask, ...prev]); setAnnounce(`Task "${title}" added for ${client}.`); e.target.reset();
       }
 
-      function updateTask(id, patch, announceText){
-        setTasks(prev => prev.map(t => t.id === id ? {...t, ...patch} : t));
-        if(announceText) setAnnounce(announceText);
-      }
-
-      function deleteTask(id){
-        const t = tasks.find(x => x.id === id);
-        if(!t) return;
-        const ok = confirm(`Delete task "${t.title}" for ${t.client}?`);
-        if(!ok) return;
-        setTasks(prev => prev.filter(x => x.id !== id));
-        setAnnounce(`Task "${t.title}" deleted.`);
-      }
-
-      function addTime(id, amount){
-        if(!amount) return;
-        const parsed = Number(amount);
-        if(parsed <= 0) return;
-        setTasks(prev => prev.map(t => {
-          if(t.id !== id) return t;
-          const newHours = Math.round((Number(t.hours||0) + parsed) * 100) / 100;
-          return {...t, hours: newHours};
-        }));
-        const t = tasks.find(x => x.id === id);
-        setAnnounce(`Added ${formatHours(parsed)} hours to "${t ? t.title : id}".`);
-      }
+      function updateTask(id, patch, annText){ setTasks(prev => prev.map(t => t.id === id ? {...t, ...patch} : t)); if(annText) setAnnounce(annText); }
+      function deleteTask(id){ const t = tasks.find(x=>x.id===id); if(!t) return; if(!confirm(`Delete task "${t.title}" for ${t.client}?`)) return; setTasks(prev=> prev.filter(x=>x.id!==id)); setAnnounce(`Task "${t.title}" deleted.`); }
+      function addTime(id, amount){ const a = Number(amount); if(!a || a<=0) return; setTasks(prev=> prev.map(t=> t.id===id ? {...t, hours: Math.round((Number(t.hours||0)+a)*100)/100} : t)); const t = tasks.find(x=>x.id===id); setAnnounce(`Added ${formatHours(a)} hours to "${t? t.title : id}".`); }
 
       return (
-        <div className="container">
+        <div>
           <header>
-            <div className="brand" aria-hidden="false">
-              <div className="logo" aria-hidden="true">AT</div>
+            <div className="brand">
+              <div className="logo" aria-hidden="true">AG</div>
               <div>
-                <h1>Accessible Agile Task & Billable Time Logger</h1>
-                <div className="muted" style={{fontSize:13}}>WCAG 2.2 AA conscious • No-build single file</div>
+                <h1>Agile Task & Billable Time Logger</h1>
+                <div className="tagline">Designed for teams — sprint-friendly, accessible, and lightweight</div>
               </div>
             </div>
-
             <div className="header-controls" role="toolbar" aria-label="Top controls">
-              <button
-                className="icon-btn"
-                onClick={() => {
-                  const next = !contrast;
-                  setContrast(next);
-                  setAnnounce(`High contrast ${next ? 'on' : 'off'}.`);
-                }}
-                aria-pressed={contrast}
-                aria-label="Toggle high contrast mode"
-                title="Toggle high contrast mode"
-              >
-                {contrast ? 'HC On' : 'HC Off'}
-              </button>
-              <button
-                onClick={() => {
-                  const ok = confirm('Reset all tasks to initial sample tasks? This will erase current data in localStorage.');
-                  if(ok){
-                    localStorage.removeItem(STORAGE_KEY);
-                    const restored = loadTasks();
-                    setTasks(restored);
-                    setAnnounce('Data reset to sample tasks.');
-                  }
-                }}
-                aria-label="Reset tasks to samples"
-                title="Reset to sample tasks"
-              >
-                Reset
-              </button>
+              <button onClick={()=>{ setContrast(c=> !c); setAnnounce(`High contrast ${!contrast? 'on':'off'}.`); }} aria-pressed={contrast} aria-label="Toggle high contrast">{contrast? 'HC On':'HC Off'}</button>
+              <button onClick={()=>{ if(confirm('Reset tasks to sample tasks? This will overwrite local data.')){ localStorage.removeItem(STORAGE_KEY); const s = loadTasks(); setTasks(s); setAnnounce('Reset to sample tasks.'); } }}>Reset</button>
             </div>
           </header>
 
           <main id="main" ref={mainRef} tabIndex="-1" aria-labelledby="main-heading">
-            <section className="summary-grid" aria-label="Summary">
-              <div className="card" role="status" aria-live="polite" aria-atomic="true">
-                <div>
-                  <h2>Total Hours</h2>
-                  <div className="value">{formatHours(totalHours)}h</div>
-                </div>
-                <div className="muted">All tasks</div>
-              </div>
-              <div className="card">
-                <div>
-                  <h2>Billable Hours</h2>
-                  <div className="value">{formatHours(billableHours)}h</div>
-                </div>
-                <div className="muted">Billable only</div>
-              </div>
-              <div className="card">
-                <div>
-                  <h2>Active Tasks</h2>
-                  <div className="value">{activeCount}</div>
-                </div>
-                <div className="muted">To Do & In Progress</div>
-              </div>
+            <section className="summary" aria-label="Summary">
+              <div className="card" role="status" aria-live="polite" aria-atomic="true"><div><h2>Total Hours</h2><div className="value">{formatHours(totalHours)}h</div></div><div className="muted">All tasks</div></div>
+              <div className="card"><div><h2>Billable Hours</h2><div className="value">{formatHours(billableHours)}h</div></div><div className="muted">Billable only</div></div>
+              <div className="card"><div><h2>Active Tasks</h2><div className="value">{activeCount}</div></div><div className="muted">To Do & In Progress</div></div>
             </section>
 
-            <section aria-labelledby="main-controls" className="stack" style={{marginTop:12}}>
-              <div id="main-controls" className="card" style={{alignItems:'center', gap:12, flexWrap:'wrap'}}>
-                <div style={{display:'flex', flexDirection:'column', gap:6, minWidth:160}}>
-                  <label id="filterLabel" className="muted">Filter</label>
-                  <div className="status-filters" role="tablist" aria-label="Filter tasks by status">
-                    {['All','To Do','In Progress','Done'].map(s => (
-                      <button
-                        key={s}
-                        onClick={() => setFilter(s)}
-                        aria-pressed={filter === s}
-                        className="filter-btn"
-                        title={`Show ${s}`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
+            <section className="card" style={{display:'flex',flexDirection:'column',gap:12}}>
+              <div className="controls" style={{alignItems:'center'}}>
+                <div style={{display:'flex',flexDirection:'column'}}>
+                  <label className="muted">Filter</label>
+                  <div className="filters" role="tablist" aria-label="Filter tasks by status">{['All','To Do','In Progress','Done'].map(s=> (<button key={s} onClick={()=> setFilter(s)} aria-pressed={filter===s}>{s}</button>))}</div>
                 </div>
 
                 <div className="search" style={{flex:1}}>
                   <label htmlFor="search" className="visually-hidden">Search by client name</label>
-                  <input
-                    id="search"
-                    type="text"
-                    placeholder="Search by client name"
-                    value={search}
-                    onChange={(e)=> setSearch(e.target.value)}
-                    aria-label="Search by client name"
-                    style={{minWidth:220}}
-                  />
-                  <button onClick={() => { setSearch(''); setAnnounce('Search cleared.'); }} aria-label="Clear search" title="Clear search">Clear</button>
+                  <input id="search" type="text" placeholder="Search by client" value={search} onChange={e=> setSearch(e.target.value)} aria-label="Search by client name" />
+                  <button onClick={()=>{ setSearch(''); setAnnounce('Search cleared.'); }}>Clear</button>
+                </div>
+
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <button onClick={()=>{ navigator.clipboard?.writeText(location.href); setAnnounce('Page URL copied.'); }}>Share</button>
                 </div>
               </div>
 
-              <div style={{display:'grid', gap:12}}>
-                <form className="add-task" onSubmit={addTask} aria-labelledby="addTaskHeading">
-                  <h2 id="addTaskHeading" style={{margin:0,fontSize:16}}>Add new task</h2>
-                  <div className="form-row" role="group" aria-label="Add task fields">
-                    <label>
-                      <span className="muted">Task Title</span>
-                      <input name="title" type="text" required placeholder="e.g. Implement UI tests" aria-required="true" />
-                    </label>
-                    <label>
-                      <span className="muted">Client Name</span>
-                      <input name="client" type="text" required placeholder="Client or team" aria-required="true" />
-                    </label>
-                  </div>
+              <form className="add-task" onSubmit={addTask} aria-labelledby="addTaskHeading">
+                <h2 id="addTaskHeading">Add new task</h2>
+                <div className="form-row">
+                  <label>Task Title<input name="title" type="text" required placeholder="e.g. Implement UI tests" aria-required="true" /></label>
+                  <label>Client Name<input name="client" type="text" required placeholder="Client or team" aria-required="true" /></label>
+                </div>
+                <div className="form-row">
+                  <label>Status<select name="status" defaultValue="To Do" aria-label="Agile status"><option>To Do</option><option>In Progress</option><option>Done</option></select></label>
+                  <label>Hours Logged<input name="hours" type="number" step="0.25" min="0" defaultValue="0" aria-label="Hours in 0.25 increments" /></label>
+                  <label style={{display:'flex',alignItems:'center',gap:8}}><input name="billable" id="billable" type="checkbox" aria-label="Mark as billable" /><span className="muted">Billable</span></label>
+                </div>
+                <div style={{display:'flex',justifyContent:'flex-end'}}><button type="submit">Add Task</button></div>
+              </form>
 
-                  <div className="form-row">
-                    <label>
-                      <span className="muted">Status</span>
-                      <select name="status" defaultValue="To Do" aria-label="Agile status">
-                        <option>To Do</option>
-                        <option>In Progress</option>
-                        <option>Done</option>
-                      </select>
-                    </label>
-
-                    <label>
-                      <span className="muted">Hours Logged</span>
-                      <input name="hours" type="number" step="0.25" min="0" defaultValue="0" aria-label="Hours logged in quarters" />
-                    </label>
-
-                    <label style={{alignItems:'center', minWidth:120}}>
-                      <span className="muted">Billable</span>
-                      <div style={{display:'flex', alignItems:'center', gap:8}}>
-                        <input name="billable" id="billable" type="checkbox" aria-label="Mark as billable" />
-                        <label htmlFor="billable" className="muted" style={{fontSize:13}}>Billable</label>
+              <section aria-labelledby="tasksHeading">
+                <h2 id="tasksHeading">Tasks ({filtered.length})</h2>
+                <div className="tasks" role="list" aria-live="polite">
+                  {filtered.length===0 && <div className="card muted">No tasks match the selected filter / search.</div>}
+                  {filtered.map(task => (
+                    <article className="task" role="listitem" key={task.id} aria-labelledby={`title-${task.id}`}>
+                      <div className="left">
+                        <h3 id={`title-${task.id}`} className="task-title">{task.title}</h3>
+                        <div className="task-meta">Client: <strong>{task.client}</strong> • {formatHours(task.hours)}h • {task.billable? 'Billable':'Non-billable'}</div>
                       </div>
-                    </label>
-                  </div>
 
-                  <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
-                    <button type="submit">Add Task</button>
-                  </div>
-                </form>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:8}}>
+                        <div className={`pill ${task.status === 'To Do' ? 'todo' : task.status === 'In Progress' ? 'inprogress' : 'done'}`} aria-hidden="true">{task.status}</div>
+                        <small className="muted">{new Date(task.createdAt).toLocaleDateString()}</small>
 
-                <section aria-labelledby="tasksHeading">
-                  <h2 id="tasksHeading" style={{margin:'8px 0'}}>Tasks ({filtered.length})</h2>
-                  <div className="tasks" role="list" aria-live="polite" aria-atomic="false">
-                    {filtered.length === 0 && (
-                      <div className="card muted">No tasks match the selected filter / search.</div>
-                    )}
-                    {filtered.map(task => (
-                      <article className="task" role="listitem" key={task.id} aria-labelledby={`title-${task.id}`}>
-                        <div className="task-meta">
-                          <div style={{display:'flex', justifyContent:'space-between', gap:12}}>
-                            <div>
-                              <h3 id={`title-${task.id}`} className="task-title">{task.title}</h3>
-                              <p className="task-sub">Client: <strong>{task.client}</strong> • {formatHours(task.hours)}h • {task.billable ? 'Billable' : 'Non-billable'}</p>
-                            </div>
-                            <div style={{display:'flex', flexDirection:'column', gap:8, alignItems:'end'}}>
-                              <div className={`pill ${task.status === 'To Do' ? 'todo' : task.status === 'In Progress' ? 'inprogress' : 'done'}`} aria-hidden="true">{task.status}</div>
-                              <small className="muted">Created {new Date(task.createdAt).toLocaleDateString()}</small>
-                            </div>
-                          </div>
+                        <div className="task-actions">
+                          <label style={{display:'flex',gap:6,alignItems:'center'}}>
+                            <span className="visually-hidden">Change status</span>
+                            <select aria-label={`Change status for ${task.title}`} value={task.status} onChange={e=> updateTask(task.id,{status:e.target.value}, `Task "${task.title}" moved to ${e.target.value}.`)}>
+                              <option>To Do</option>
+                              <option>In Progress</option>
+                              <option>Done</option>
+                            </select>
+                          </label>
 
-                          <div style={{display:'flex', gap:8, marginTop:8, flexWrap:'wrap'}}>
-                            <label style={{display:'flex', gap:6, alignItems:'center'}}>
-                              <span className="visually-hidden">Change status</span>
-                              <select
-                                aria-label={`Change status for ${task.title}`}
-                                value={task.status}
-                                onChange={(e)=> updateTask(task.id, {status: e.target.value}, `Task "${task.title}" moved to ${e.target.value}.`)}
-                              >
-                                <option>To Do</option>
-                                <option>In Progress</option>
-                                <option>Done</option>
-                              </select>
-                            </label>
+                          <AddTimeControl onAdd={amount=> addTime(task.id, amount)} taskTitle={task.title} />
 
-                            <AddTimeControl onAdd={(amount) => addTime(task.id, amount)} taskTitle={task.title} />
+                          <label style={{display:'flex',gap:6,alignItems:'center'}}>
+                            <input type="checkbox" checked={task.billable} onChange={e=> updateTask(task.id,{billable:e.target.checked}, `Task "${task.title}" marked ${e.target.checked? 'billable':'non-billable'}.`)} aria-label={`Toggle billable for ${task.title}`} />
+                            <span className="muted">Billable</span>
+                          </label>
 
-                            <label style={{display:'flex', gap:6, alignItems:'center'}}>
-                              <input
-                                type="checkbox"
-                                checked={task.billable}
-                                onChange={(e)=> updateTask(task.id, {billable: e.target.checked}, `Task "${task.title}" marked ${e.target.checked ? 'billable' : 'non-billable'}.`)}
-                                aria-label={`Toggle billable for ${task.title}`}
-                              />
-                              <span className="muted">Billable</span>
-                            </label>
-
-                            <button onClick={()=> deleteTask(task.id)} aria-label={`Delete ${task.title}`} title="Delete task" style={{background:'#fff0f0', color:'var(--danger)'}}>Delete</button>
-                          </div>
+                          <button onClick={()=> deleteTask(task.id)} aria-label={`Delete ${task.title}`} title="Delete" style={{background:'transparent',color:'var(--danger)'}}>Delete</button>
                         </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
             </section>
+
           </main>
 
-          <aside aria-label="Right column" style={{marginTop:12}}>
+          <aside style={{marginTop:16}}>
             <div className="card stack" role="region" aria-labelledby="helpHeading">
-              <h3 id="helpHeading" style={{margin:0}}>Tips & Accessibility</h3>
+              <h3 id="helpHeading">Sprint & Accessibility</h3>
               <ul style={{margin:'8px 0 0 16px'}}>
-                <li>Use <strong>Tab</strong> to navigate; focus outlines are visible.</li>
-                <li>Ensure keyboard users can reach "Skip to main content" at the top.</li>
-                <li>High Contrast toggles colors for better readability.</li>
-                <li>Hours accept 0.25 increments; use numeric inputs for accuracy.</li>
+                <li>Designed for quick sprint tracking and time logging.</li>
+                <li>Keyboard-first interactions, clear focus outlines, and accessible labels.</li>
+                <li>High-contrast toggle for improved readability.</li>
               </ul>
-              <div style={{display:'flex', gap:8, marginTop:8}}>
-                <button onClick={()=> { if(navigator.clipboard) navigator.clipboard.writeText(location.href); setAnnounce('Page URL copied to clipboard.'); }} aria-label="Copy page URL">Copy URL</button>
-                <button onClick={()=> { localStorage.clear(); setTasks([]); setAnnounce('All local storage cleared.'); }} aria-label="Clear local storage">Clear Storage</button>
+              <div style={{display:'flex',gap:8,marginTop:8}}>
+                <button onClick={()=>{ localStorage.clear(); setTasks([]); setAnnounce('Local storage cleared.'); }}>Clear Storage</button>
+                <button onClick={()=>{ navigator.clipboard?.writeText(location.href); setAnnounce('Page URL copied.'); }}>Copy URL</button>
               </div>
             </div>
 
             <div className="card" style={{marginTop:12}}>
-              <h4 style={{margin:'0 0 8px 0'}}>Status Announcements</h4>
-              <div className="muted" id="liveRegion" role="status" aria-live="polite" aria-atomic="true"></div>
-              <div style={{marginTop:8, fontSize:13}} className="muted">Recent action: <span aria-live="polite">{announce || 'None'}</span></div>
+              <h4 style={{margin:0}}>Announcements</h4>
+              <div className="muted" role="status" aria-live="polite" aria-atomic="true">{announce || 'None'}</div>
             </div>
           </aside>
 
-          <footer>
-            <div className="muted">Data saved locally in your browser. No accounts or servers involved.</div>
-          </footer>
+          <footer><div className="muted">Data is saved locally in your browser. No server required.</div></footer>
 
           <div aria-live="polite" aria-atomic="true" className="visually-hidden" id="sr-announcer">{announce}</div>
         </div>
       );
     }
 
-    function AddTimeControl({onAdd, taskTitle}){
-      const [open, setOpen] = useState(false);
-      const [value, setValue] = useState(0.25);
-
-      function submit(e){
-        e.preventDefault();
-        const v = Number(value);
-        if(v > 0){
-          onAdd(v);
-          setOpen(false);
-          setValue(0.25);
-        }
-      }
-
+    function AddTimeControl({onAdd,taskTitle}){
+      const [open,setOpen] = useState(false);
+      const [value,setValue] = useState(0.25);
+      function submit(e){ e.preventDefault(); const v = Number(value); if(v>0){ onAdd(v); setOpen(false); setValue(0.25); } }
       return (
-        <div style={{display:'flex', alignItems:'center', gap:8}}>
-          <button onClick={()=> setOpen(o => !o)} aria-expanded={open} aria-controls="add-time-panel" className="small">Add time</button>
-
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <button onClick={()=> setOpen(o=>!o)} aria-expanded={open} aria-controls="add-time-panel" className="small">Add time</button>
           {open && (
-            <form id="add-time-panel" onSubmit={submit} style={{display:'flex', gap:8, alignItems:'center'}}>
+            <form id="add-time-panel" onSubmit={submit} style={{display:'flex',gap:8,alignItems:'center'}}>
               <label className="visually-hidden">Hours to add to {taskTitle}</label>
-              <input
-                type="number"
-                step="0.25"
-                min="0.25"
-                value={value}
-                onChange={(e)=> setValue(e.target.value)}
-                aria-label={`Hours to add to ${taskTitle}`}
-                style={{width:100}}
-              />
+              <input type="number" step="0.25" min="0.25" value={value} onChange={e=> setValue(e.target.value)} aria-label={`Hours to add to ${taskTitle}`} style={{width:96}} />
               <button type="submit" className="small">Add</button>
               <button type="button" onClick={()=> setOpen(false)} className="small">Cancel</button>
             </form>
